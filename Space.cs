@@ -1,6 +1,5 @@
 ﻿namespace EnterpriseCheckers
 {
-
     /// <summary>
     /// Class representing a checkers board space
     /// </summary>

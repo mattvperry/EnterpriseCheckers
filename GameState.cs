@@ -41,11 +41,16 @@
             {
                 if(it.Space.Occupied() && it.Space.Piece.Team == this.CurrentTurn)
                 {
-                    // Try one direction
+                    // Try both forward directions
                     moves.AddRange(this.FindMoves(this.CurrentTurn, it.Index, multiplier * 4));
-
-                    // Try the other
                     moves.AddRange(this.FindMoves(this.CurrentTurn, it.Index, multiplier * 5));
+
+                    if(it.Space.Piece.King)
+                    {
+                        // Try both backward directions
+                        moves.AddRange(this.FindMoves(this.CurrentTurn, it.Index, -1 * multiplier * 4));
+                        moves.AddRange(this.FindMoves(this.CurrentTurn, it.Index, -1 * multiplier * 5));
+                    }
                 }
             }
 
@@ -74,6 +79,11 @@
             foreach(var jumped in move.Jumps)
             {
                 this.Board.Spaces[jumped].Clear();
+            }
+
+            if(move.KingMe)
+            {
+                toSpace.Piece.King = true;
             }
 
             // Toggle current turn
@@ -126,7 +136,12 @@
                 // Simple move possible
                 if (!possibleSpace.Occupied())
                 {
-                    moves.Add(new Move(start, destination));
+                    var move = new Move(start, destination);
+                    if(KingSpace(team, destination))
+                    {
+                        move.KingMe = true;
+                    }
+                    moves.Add(move);
                 }
                 else if (possibleSpace.Piece.Team != team)
                 {
@@ -137,11 +152,36 @@
                     {
                         var move = new Move(start, destination);
                         move.Jumps.Add(start + direction);
+                        if(KingSpace(team, destination))
+                        {
+                            move.KingMe = true;
+                        }
                         moves.Add(move);
                     }
                 }
             }
             return moves;
+        }
+
+        /// <summary>
+        /// Is the coordinate a king space for this team?
+        /// </summary>
+        /// <param name="team">Team to check</param>
+        /// <param name="coord">Coordinate to check</param>
+        /// <returns>True if a king space</returns>
+        private bool KingSpace(Team team, int coord)
+        {
+            if(team == Team.Red && coord >= 5 && coord <= 8)
+            {
+                return true;
+            }
+
+            if(team == Team.Black && coord >= 37 && coord <= 40)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -151,7 +191,7 @@
         /// <returns>Number of remaining pieces</returns>
         private int PieceCount(Team team)
         {
-            return this.Board.Spaces.Where(p => p.Occupied() && p.Piece.Team == team).Count();
+            return this.Board.Spaces.Where(s => s.Occupied() && s.Piece.Team == team).Count();
         }
     }
 }

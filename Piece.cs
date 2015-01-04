@@ -10,12 +10,10 @@
         /// </summary>
         public Team Team { get; private set; }
 
-        /* TODO: Implement kings
         /// <summary>
         /// Is this piece a king
         /// </summary>
         public bool King { get; set; }
-        */
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Piece"/> class.
@@ -24,6 +22,7 @@
         public Piece(Team team)
         {
             this.Team = team;
+            this.King = false;
         }
 
         /// <summary>
@@ -35,9 +34,9 @@
             switch(this.Team)
             {
                 case Team.Red:
-                    return "r";
+                    return this.King ? "R" : "r";
                 case Team.Black:
-                    return "b";
+                    return this.King ? "B" : "b";
                 default:
                     return null;
             }

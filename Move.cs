@@ -25,6 +25,11 @@
         public List<int> Jumps { get; set; }
 
         /// <summary>
+        /// Does this move involving kinging the piece?
+        /// </summary>
+        public bool KingMe { get; set; }
+
+        /// <summary>
         /// Initializes an instance of the <see cref="Move"/> class.
         /// </summary>
         /// <param name="from">Starting coordinate</param>
@@ -34,6 +39,7 @@
             this.From = from;
             this.To = to;
             this.Jumps = new List<int>();
+            this.KingMe = false;
         }
 
         /// <summary>
