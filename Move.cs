@@ -64,7 +64,7 @@
             var fromPt = this.CoordinateToPoint(this.From);
             var toPt = this.CoordinateToPoint(this.To);
 
-            return string.Format("({0}, {1}) to ({2}, {3})", fromPt.X, fromPt.Y, toPt.X, toPt.Y);
+            return string.Format("({0}, {1}) to ({2}, {3}) [{4} jump(s)]", fromPt.X, fromPt.Y, toPt.X, toPt.Y, this.Jumps.Count);
         }
 
         /// <summary>
