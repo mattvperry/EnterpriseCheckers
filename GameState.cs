@@ -35,33 +35,16 @@
         public IEnumerable<Move> ValidMoves()
         {
             var moves = new List<Move>();
-            var multiplier = this.CurrentTurn == Team.Black ? 1 : -1;
-
-            foreach(var it in this.Board.Spaces.Select((Space, Index) => new { Space, Index }))
+            foreach(var it in this.Board.Spaces
+                .Select((Space, Index) => new { Space, Index })
+                .Where(it => it.Space.Occupied() && it.Space.Piece.Team == this.CurrentTurn))
             {
-                if(it.Space.Occupied() && it.Space.Piece.Team == this.CurrentTurn)
-                {
-                    // Try both forward directions
-                    moves.AddRange(this.FindMoves(this.CurrentTurn, it.Index, multiplier * 4));
-                    moves.AddRange(this.FindMoves(this.CurrentTurn, it.Index, multiplier * 5));
-
-                    if(it.Space.Piece.King)
-                    {
-                        // Try both backward directions
-                        moves.AddRange(this.FindMoves(this.CurrentTurn, it.Index, -1 * multiplier * 4));
-                        moves.AddRange(this.FindMoves(this.CurrentTurn, it.Index, -1 * multiplier * 5));
-                    }
-                }
+                moves.AddRange(this.FindMoves(this.CurrentTurn, new Move(it.Index, it.Index)));
             }
 
             // Forced jumps
             var jumpMoves = moves.Where(m => m.Jumps.Any());
-            if (jumpMoves.Any())
-            {
-                return jumpMoves;
-            }
-
-            return moves;
+            return jumpMoves.Any() ? jumpMoves : moves;
         }
 
         /// <summary>
@@ -76,15 +59,12 @@
             toSpace.Place(fromSpace.Piece);
             fromSpace.Clear();
 
-            foreach(var jumped in move.Jumps)
-            {
-                this.Board.Spaces[jumped].Clear();
-            }
-
-            if(move.KingMe)
+            if (move.KingMe)
             {
                 toSpace.Piece.King = true;
             }
+
+            move.Jumps.ForEach(j => this.Board.Spaces[j].Clear());
 
             // Toggle current turn
             this.CurrentTurn = (Team)((((int)this.CurrentTurn) + 1) % 2);
@@ -100,63 +80,96 @@
         }
 
         /// <summary>
-        /// Decides the winning team
-        /// </summary>
-        /// <returns>Winning team</returns>
-        public Team WinningTeam()
-        {
-            return this.PieceCount(Team.Red) > this.PieceCount(Team.Black) ? Team.Red : Team.Black;
-        }
-
-        /// <summary>
         /// Returns a string that represents the current object
         /// </summary>
         /// <returns>String representation</returns>
         public override string ToString()
         {
             var turnMsg = string.Format("It is currently the {0} team's turn.", this.CurrentTurn);
+            var winMsg = string.Format("{0} team wins!", this.WinningTeam());
 
-            return string.Format("{0}\n\n{1}", turnMsg, this.Board);
+            return string.Format("{0}\n\n{1}", this.GameOver() ? winMsg : turnMsg, this.Board);
+        }
+
+        /// <summary>
+        /// Decides the winning team
+        /// </summary>
+        /// <returns>Winning team</returns>
+        private Team WinningTeam()
+        {
+            return this.PieceCount(Team.Red) > this.PieceCount(Team.Black) ? Team.Red : Team.Black;
+        }
+
+        /// <summary>
+        /// Find all moves starting with a seed move
+        /// </summary>
+        /// <param name="team">Team to move</param>
+        /// <param name="move">Seed move</param>
+        /// <returns>List of all possible moves</returns>
+        private IEnumerable<Move> FindMoves(Team team, Move move)
+        {
+            var moves = new List<Move>();
+            var multiplier = this.CurrentTurn == Team.Black ? 1 : -1;
+
+            // Try both forward directions
+            moves.AddRange(this.FindMoves(this.CurrentTurn, new Move(move), multiplier * 4));
+            moves.AddRange(this.FindMoves(this.CurrentTurn, new Move(move), multiplier * 5));
+
+            // Piece is already a king or this move will make it one
+            if(this.Board.Spaces[move.From].Piece.King || move.KingMe)
+            {
+                // Try both backward directions
+                moves.AddRange(this.FindMoves(this.CurrentTurn, new Move(move), -1 * multiplier * 4));
+                moves.AddRange(this.FindMoves(this.CurrentTurn, new Move(move), -1 * multiplier * 5));
+            }
+
+            // There are no moves to be made and the seed move is not a "pass"
+            if(!moves.Any() && move.To != move.From)
+            {
+                moves.Add(move);
+            }
+
+            return moves;
         }
 
         /// <summary>
         /// Find all moves from one direction
         /// </summary>
         /// <param name="team">Team to move</param>
-        /// <param name="start">Starting piece</param>
+        /// <param name="move">Starting move</param>
         /// <param name="direction">Direction to move</param>
         /// <returns>List of moves</returns>
-        private IEnumerable<Move> FindMoves(Team team, int start, int direction)
+        private IEnumerable<Move> FindMoves(Team team, Move move, int direction)
         {
             var moves = new List<Move>();
-            var destination = start + direction;
-            var possibleSpace = this.Board.Spaces[destination];
-            if(possibleSpace.Valid())
+            var possibleSpace = this.Board.Spaces[move.To + direction];
+            // Only consider direction if it is valid and we haven't already jumped it
+            if(possibleSpace.Valid() && !move.Jumps.Contains(move.To + direction))
             {
-                // Simple move possible
-                if (!possibleSpace.Occupied())
+                // Simple move possible. If this move already has jumps we can't make simple moves
+                if (!possibleSpace.Occupied() && !move.Jumps.Any())
                 {
-                    var move = new Move(start, destination);
-                    if(KingSpace(team, destination))
+                    move.To += direction;
+                    if(KingSpace(team, move.To))
                     {
                         move.KingMe = true;
                     }
                     moves.Add(move);
                 }
-                else if (possibleSpace.Piece.Team != team)
+                else if (possibleSpace.Occupied() && possibleSpace.Piece.Team != team)
                 {
-                    destination += direction;
-                    possibleSpace = this.Board.Spaces[destination];
+                    possibleSpace = this.Board.Spaces[move.To + 2 * direction];
                     // At least single jump possible
                     if (possibleSpace.Valid() && !possibleSpace.Occupied())
                     {
-                        var move = new Move(start, destination);
-                        move.Jumps.Add(start + direction);
-                        if(KingSpace(team, destination))
+                        move.Jumps.Add(move.To + direction);
+                        move.To += 2 * direction;
+                        if(KingSpace(team, move.To))
                         {
                             move.KingMe = true;
                         }
-                        moves.Add(move);
+                        // Recurse and look for more jumps
+                        moves.AddRange(this.FindMoves(team, move));
                     }
                 }
             }

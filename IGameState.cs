@@ -25,11 +25,5 @@
         /// </summary>
         /// <returns>True if game is over</returns>
         bool GameOver();
-
-        /// <summary>
-        /// Decides the winning team
-        /// </summary>
-        /// <returns>Winning team</returns>
-        Team WinningTeam();
     }
 }

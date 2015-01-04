@@ -60,7 +60,9 @@
                 Console.WriteLine();
             }
 
-            Console.WriteLine("{0} team wins!", this.State.WinningTeam());
+            Console.WriteLine(this.State);
+            Console.Write("Press enter to quit: ");
+            Console.ReadLine();
         }
 
         /// <summary>

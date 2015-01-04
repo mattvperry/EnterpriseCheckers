@@ -22,7 +22,7 @@
         /// <summary>
         /// List of jumped pieces
         /// </summary>
-        public List<int> Jumps { get; set; }
+        public List<int> Jumps { get; private set; }
 
         /// <summary>
         /// Does this move involving kinging the piece?
@@ -40,6 +40,19 @@
             this.To = to;
             this.Jumps = new List<int>();
             this.KingMe = false;
+        }
+
+        /// <summary>
+        /// Initializes an instance of the <see cref="Move"/> class by copying another instance.
+        /// </summary>
+        /// <param name="move">Move to copy</param>
+        public Move(Move move)
+        {
+            this.From = move.From;
+            this.To = move.To;
+            this.Jumps = new List<int>();
+            this.KingMe = move.KingMe;
+            move.Jumps.ForEach(j => this.Jumps.Add(j));
         }
 
         /// <summary>
